@@ -1,0 +1,51 @@
+{
+  "name": "@gustavoquintero/rfc-curp",
+  "version": "1.0.0",
+  "description": "Valida y desglosa RFC y CURP de México con su dígito verificador: tipo de persona, fecha, sexo, estado y errores explicados en español. Sin dependencias, con tipos.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "sitio": "npm run build && rm -rf dist && mkdir -p dist/lib && cp lib/*.js dist/lib/ && cp web/* dist/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests",
+    "e2e": "playwright test",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "rfc",
+    "curp",
+    "mexico",
+    "sat",
+    "renapo",
+    "validador",
+    "digito verificador",
+    "typescript"
+  ],
+  "author": "Gustavo Quintero (https://gustavoquintero.dev)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GustavoQuinteroC/rfc-curp.git"
+  },
+  "homepage": "https://proyectos.gustavoquintero.dev/rfc-curp/",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

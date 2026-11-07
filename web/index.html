@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://gustavoquintero.dev; connect-src 'self'">
+<title>Validador de RFC y CURP | Gustavo Quintero</title>
+<meta name="description" content="Valida RFC y CURP con su dígito verificador y ve qué dice cada parte: tipo de persona, fecha, sexo y estado. Uno o cientos a la vez, sin enviar datos.">
+<meta name="theme-color" content="#081236">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fondo: #eef3ff; --superficie: #f8faff; --campo: #ffffff; --tinta: #0b1a4a; --tinta-2: #44527a; --linea: #d0daf2;
+    --noche: #081236; --noche-2: #0f1f57; --hielo: #eaf0ff; --hielo-2: #a9b8e6; --rey: #2350ff; --rey-hover: #1636c7; --rey-suave: #dfe6ff;
+    --esmeralda: #00c389; --esmeralda-texto: #007a56; --esmeralda-suave: #ddf7ee; --alto: #c62828; --alto-suave: #fde4e4;
+    --fuente: "Geist", "Segoe UI", system-ui, -apple-system, sans-serif; --mono: "Geist Mono", ui-monospace, Menlo, monospace; --ancho: 1180px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fondo: #060d29; --superficie: #0c1640; --campo: #081236; --tinta: #eaf0ff; --tinta-2: #a9b8e6; --linea: #1d2c66; --rey: #5b7cff; --rey-hover: #7f99ff; --rey-suave: #14235e; --esmeralda-texto: #3ee0ae; --esmeralda-suave: #0c3a33; --alto: #ff8a8a; --alto-suave: #3d1620; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--fondo); color: var(--tinta); font-family: var(--fuente); line-height: 1.55; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--rey); outline-offset: 2px; border-radius: 6px; }
+  .ancho { width: min(100% - 32px, var(--ancho)); margin-inline: auto; }
+  .cabecera { background-color: var(--noche); background-image: radial-gradient(rgba(169,184,230,.16) 1px, transparent 1px); background-size: 22px 22px; color: var(--hielo); padding: 24px 0 48px; }
+  .barra { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .firma { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 600; white-space: nowrap; }
+  .firma__foto { width: 38px; height: 38px; border-radius: 12px; object-fit: cover; box-shadow: 0 0 0 2px var(--rey); }
+  .barra__enlaces { display: flex; gap: 22px; font-size: .95rem; }
+  .barra__enlaces a { color: var(--hielo-2); text-decoration: none; }
+  .barra__enlaces a:hover { color: #fff; }
+  .portada { margin-top: 40px; max-width: 780px; }
+  .portada h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.04; letter-spacing: -.04em; font-weight: 700; }
+  .portada p { margin-top: 14px; font-size: 1.12rem; color: var(--hielo-2); max-width: 62ch; }
+
+  .lector { margin-top: 32px; background: var(--noche-2); border: 1px solid #1b2c70; border-radius: 22px; padding: 22px; }
+  .lector label { display: block; font-size: .85rem; color: var(--hielo-2); margin-bottom: 6px; }
+  .lector input { width: 100%; font: 600 clamp(1.3rem, 3.4vw, 1.9rem) var(--mono); letter-spacing: .12em; text-transform: uppercase; color: #fff; background: var(--noche); border: 1px solid #1b2c70; border-radius: 14px; padding: 14px 16px; }
+  .lector input:focus { outline: none; border-color: var(--rey); box-shadow: 0 0 0 3px rgba(35,80,255,.35); }
+  /* Cada parte de la clave, con lo que significa debajo. */
+  .partes { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; min-height: 76px; }
+  .parte { border-radius: 12px; padding: 8px 12px; background: rgba(169,184,230,.08); border: 1px solid rgba(169,184,230,.18); }
+  .parte b { display: block; font: 600 1.15rem var(--mono); letter-spacing: .08em; color: #fff; }
+  .parte span { display: block; font-size: .78rem; color: var(--hielo-2); }
+  .parte--mal { border-color: #ff8a8a; background: rgba(255,138,138,.12); }
+  .parte--mal b { color: #ffc2c2; }
+  .veredicto { margin-top: 14px; display: grid; gap: 6px; }
+  .veredicto__titulo { font-weight: 600; font-size: 1.05rem; }
+  .veredicto__titulo[data-valido="true"] { color: #4fe0b4; }
+  .veredicto__titulo[data-valido="false"] { color: #ffb0b0; }
+  .veredicto ul { padding-left: 1.1em; color: var(--hielo); font-size: .93rem; display: grid; gap: 4px; }
+  .ejemplos { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .85rem; color: var(--hielo-2); }
+  .ejemplos button { font: 500 .82rem var(--mono); cursor: pointer; background: transparent; color: var(--hielo); border: 1px solid rgba(169,184,230,.35); border-radius: 999px; padding: 4px 10px; }
+  .ejemplos button:hover { border-color: var(--hielo); }
+
+  main { padding: 28px 0 64px; display: grid; gap: 22px; }
+  .tarjeta { background: var(--superficie); border: 1px solid var(--linea); border-radius: 22px; padding: 24px; min-width: 0; }
+  .tarjeta h2 { font-size: 1.15rem; letter-spacing: -.015em; }
+  .tarjeta > p { margin-top: 6px; color: var(--tinta-2); font-size: .95rem; }
+  textarea { margin-top: 12px; width: 100%; min-height: 140px; font: .9rem var(--mono); padding: 12px; border-radius: 12px; border: 1px solid var(--linea); background: var(--campo); color: var(--tinta); resize: vertical; text-transform: uppercase; }
+  textarea:focus { outline: none; border-color: var(--rey); box-shadow: 0 0 0 3px var(--rey-suave); }
+  .acciones { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .boton { font: inherit; font-weight: 600; font-size: .95rem; cursor: pointer; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--linea); background: var(--campo); color: var(--tinta); }
+  .boton:hover:not(:disabled) { border-color: var(--rey); }
+  .boton:disabled { opacity: .5; cursor: not-allowed; }
+  .resumen-lote { font-weight: 600; }
+  .tabla { margin-top: 14px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { font-size: .8rem; color: var(--tinta-2); font-weight: 600; }
+  td.clave { font-family: var(--mono); white-space: nowrap; }
+  .estado { font-size: .78rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .estado--si { background: var(--esmeralda-suave); color: var(--esmeralda-texto); }
+  .estado--no { background: var(--alto-suave); color: var(--alto); }
+  .codigo { margin-top: 12px; background: var(--noche); color: var(--hielo); border-radius: 14px; padding: 16px; font: .84rem/1.6 var(--mono); overflow-x: auto; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pie { border-top: 1px solid var(--linea); padding: 22px 0 28px; font-size: .92rem; color: var(--tinta-2); }
+  .pie .ancho { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+  @media (max-width: 560px) { .portada { margin-top: 28px; } .barra__enlaces { gap: 14px; font-size: .9rem; } .tarjeta, .lector { padding: 18px; } }
+  @media (max-width: 420px) { .barra__enlaces a[href="https://gustavoquintero.dev"] { display: none; } }
+</style>
+</head>
+<body>
+  <header class="cabecera">
+    <div class="ancho">
+      <nav class="barra" aria-label="Principal">
+        <a class="firma" href="https://gustavoquintero.dev"><img class="firma__foto" src="https://gustavoquintero.dev/assets/img/gustavo-quintero-96.jpg" width="38" height="38" alt="">Gustavo Quintero</a>
+        <div class="barra__enlaces">
+          <a href="../">Herramientas</a>
+          <a href="https://gustavoquintero.dev">CV</a>
+          <a href="https://github.com/GustavoQuinteroC/rfc-curp" rel="noopener">Código</a>
+        </div>
+      </nav>
+      <div class="portada">
+        <h1>Validador de RFC y CURP</h1>
+        <p>Escribe una clave y ve qué significa cada parte y si su dígito verificador cuadra. Detecta errores de captura antes de timbrar una factura o dar de alta a alguien. Nada sale de tu navegador.</p>
+      </div>
+      <section class="lector" aria-label="Validar una clave">
+        <label for="clave">RFC o CURP</label>
+        <input id="clave" autocomplete="off" spellcheck="false" maxlength="24" placeholder="GODE561231GR8">
+        <ul class="partes" id="partes" aria-label="Partes de la clave"></ul>
+        <div class="veredicto" id="veredicto" aria-live="polite"></div>
+        <div class="ejemplos">Ejemplos:
+          <button type="button" data-ejemplo="GODE561231GR8">GODE561231GR8</button>
+          <button type="button" data-ejemplo="EKU9003173C9">EKU9003173C9</button>
+          <button type="button" data-ejemplo="BOXW310820HNERXN09">BOXW310820HNERXN09</button>
+          <button type="button" data-ejemplo="GODE561231GR9">con error</button>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <main class="ancho">
+    <section class="tarjeta" aria-labelledby="titulo-lote">
+      <h2 id="titulo-lote">Revisa una lista completa</h2>
+      <p>Pega una columna de Excel con RFC, CURP o ambos, uno por renglón. Se detecta cuál es cuál.</p>
+      <label for="lote" class="sr">Lista de claves</label>
+      <textarea id="lote" spellcheck="false" placeholder="GODE561231GR8&#10;EKU9003173C9&#10;BOXW310820HNERXN09"></textarea>
+      <div class="acciones">
+        <button type="button" class="boton" id="descargar" disabled>Descargar resultados (CSV)</button>
+        <span class="resumen-lote" id="resumen-lote" role="status" aria-live="polite"></span>
+      </div>
+      <div class="tabla"><table id="tabla" hidden>
+        <thead><tr><th>Clave</th><th>Tipo</th><th>Resultado</th><th>Detalle</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="titulo-codigo">
+      <h2 id="titulo-codigo">Úsalo en tu código</h2>
+      <p>Paquete de npm sin dependencias, con tipos de TypeScript.</p>
+      <pre class="codigo"><code>npm install @gustavoquintero/rfc-curp
+
+import { validarRfc, validarCurp } from '@gustavoquintero/rfc-curp';
+
+validarRfc('GODE561231GR8');
+// { valido: true, tipo: 'fisica', fecha: '1956-12-31', homoclave: 'GR8', errores: [] }
+
+validarCurp('BOXW310820HNERXN08').errores;
+// ['El dígito verificador debería ser "9" y es "8". Probablemente hay un error de captura.']</code></pre>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="ancho">
+      <span>Gustavo Quintero · Guadalajara</span>
+      <a href="https://github.com/GustavoQuinteroC/rfc-curp" rel="noopener">Código abierto con licencia MIT</a>
+    </div>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
